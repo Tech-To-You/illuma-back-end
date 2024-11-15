@@ -1,5 +1,8 @@
 # Py
 __pycache__
+.env
+config/illuma-key.json
+venv
 
 # Logs
 logs
