@@ -1,6 +1,4 @@
-# React + Vite
-
-Back-End Illuma
+# Back-End Illuma
 
 run
 
