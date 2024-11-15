@@ -2,8 +2,7 @@
 
 run
 
-`pip install "fastapi[standard]"`
+`pip install -r requiremenets.txt`
 
 `fastapi dev main.py`
 
-after: create requirements.txt
