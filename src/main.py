@@ -5,11 +5,11 @@ from firebase_admin import credentials, firestore
 import firebase_admin
 import os
 
-from services.algorithm_raking import simple_rank
 
 from dotenv import load_dotenv
 from more_itertools import chunked
 
+from services.algorithm_raking import simple_rank
 from models.user import User
 from models.history import AddHistory
 from models.email import SendEmail
@@ -179,3 +179,9 @@ def send_email(email_props: SendEmail):
     email_sent_response = send_article_email(email, articles)
 
     return email_sent_response
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)
