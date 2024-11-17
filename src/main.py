@@ -9,9 +9,11 @@ from more_itertools import chunked
 
 from models.user import User
 from models.history import AddHistory
+from models.email import SendEmail
 
 from services.generate_amplified_keywords import generate_amplified_keywords
 from services.get_articles import get_articles_by_keywords
+from services.send_article_email import send_article_email
 
 load_dotenv()
 
@@ -114,3 +116,25 @@ def get_articles(search_term: str):
     articles = get_articles_by_keywords(formatted_keywords)
     
     return { "articles": articles }
+
+@app.post("/v1/email/send")
+def send_email(email_props: SendEmail):
+
+    keywords_res = generate_amplified_keywords("Naruto")
+    keywords_batch_size = len(keywords_res["original_keywords"])
+    amplified_keywords = keywords_res["amplified_keywords"]
+    
+    batched_keywords = list(chunked(amplified_keywords, keywords_batch_size))
+    
+    formatted_keywords = [str(keywords_group).replace("[", "").replace("]","").replace(",", "") for keywords_group in batched_keywords]
+
+
+    articles = get_articles_by_keywords(formatted_keywords)
+
+    email = email_props.email_receiver
+    
+        
+
+    email_sent_response = send_article_email(email, articles)
+
+    return email_sent_response
