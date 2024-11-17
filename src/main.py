@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException
 from firebase_admin import credentials, firestore
 import firebase_admin
 import os
+
 from dotenv import load_dotenv
 from more_itertools import chunked
 
@@ -14,6 +15,9 @@ from models.email import SendEmail
 from services.generate_amplified_keywords import generate_amplified_keywords
 from services.get_articles import get_articles_by_keywords
 from services.send_article_email import send_article_email
+
+from services.chat_bot import generate_response
+from models.message import Message
 
 load_dotenv()
 
@@ -28,7 +32,11 @@ db = firestore.client()
 
 app = FastAPI()
 
-
+@app.post("/v1/chat-bot")
+async def read_item(message: Message):
+    response = generate_response(message.prompt, message.history, message.is_first_message);  
+    return {"status": 200, "response": response}    
+    
 
 @app.post("/v1/user/create")
 def create_user(user: User):    
@@ -45,6 +53,7 @@ def create_user(user: User):
     user_doc.set({
         "id": user_id,
         "email": user.email,
+        "name": user.name,
         "preferences": user.preferences,
         
     })
@@ -55,9 +64,8 @@ def create_user(user: User):
         "history": []
     })
 
-    return {"msg": f"Usuário '{usuario.nome}' criado com sucesso!", "user_id": user_doc.id}
+    return {"msg": f"Usuário '{user.name}' criado com sucesso!", "user_id": user_doc.id} #esse usuario estava correto? 
 
- 
 @app.post("/v1/history/add-term")
 def add_to_history(history: AddHistory):    
     users_collection = db.collection("users")
@@ -82,7 +90,6 @@ def add_to_history(history: AddHistory):
     history_doc.set(history_data)
 
     return {"msg": "Histórico atualizado com sucesso!", "History": history_data}
-
 
 @app.get("/v1/user/get/{user_id}")
 def get_user(user_id: str):    
