@@ -3,10 +3,8 @@ from uuid import uuid4
 from fastapi import FastAPI, HTTPException
 from firebase_admin import credentials, firestore
 import firebase_admin
-import json
 import os
 
-from models.papers import N_Paper
 from services.algorithm_raking import simple_rank
 
 from dotenv import load_dotenv
@@ -15,6 +13,7 @@ from more_itertools import chunked
 from models.user import User
 from models.history import AddHistory
 from models.email import SendEmail
+from models.papers import Paper
 
 from services.generate_amplified_keywords import generate_amplified_keywords
 from services.get_articles import get_articles_by_keywords
@@ -71,11 +70,7 @@ def create_user(user: User):
         {"user_id": user_doc.id, "history": []}
     )
 
-    return {
-        "msg": f"Usuário '{usuario.nome}' criado com sucesso!",
-        "user_id": user_doc.id,
-    }
-    return {"msg": f"Usuário '{user.name}' criado com sucesso!", "user_id": user_doc.id} #esse usuario estava correto? 
+    return {"msg": f"Usuário '{user.name}' criado com sucesso!", "user_id": user_doc.id}
 
 @app.post("/v1/history/add-term")
 def add_to_history(history: AddHistory):
@@ -147,19 +142,19 @@ def get_articles(search_term: str):
 
     articles = get_articles_by_keywords(formatted_keywords)
 
-    papers = []
+    articles = simple_rank(search_term, articles)    
 
-    for n_paper in articles.get("articles", []):
-        paper = Paper(
-            DOI=n_paper.get("DOI", ""),
-            title=n_paper.get("title", [""])[0],
-            link=n_paper.get("URL", ""),
-            publication_year=n_paper.get("issued", {}).get("data-parts", [[None]])[0][
-                0
-            ],
-            abstract=n_paper.get("abstract", ""),
-        )
-        papers.append(paper)    
+    # for n_paper in articles:
+    #     paper = Paper(
+    #         DOI=n_paper.get("DOI", ""),
+    #         title=n_paper.get("title", [""])[0],
+    #         link=n_paper.get("URL", ""),
+    #         publication_year=n_paper.get("issued", {}).get("data-parts", [[None]])[0][
+    #             0
+    #         ],
+    #         abstract=n_paper.get("abstract", ""),
+    #     )
+    #     papers.append(paper)    
     
     return { "articles": articles }
 

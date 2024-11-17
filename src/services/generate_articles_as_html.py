@@ -1,7 +1,9 @@
 from utils.generate_html_structure import generate_html_structure
 
+from utils.get_title import get_title
+
 def generate_article(article):
-  title =  article["title"][0] if isinstance(article.get("title"), list) and len(article["title"]) > 0 else "Sem Título"
+  title =  get_title(article)
   publisher = article.get("publisher", "Desconhecido")
   doi = article["DOI"]
 
