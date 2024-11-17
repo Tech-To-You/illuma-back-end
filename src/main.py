@@ -5,9 +5,13 @@ from firebase_admin import credentials, firestore
 import firebase_admin
 import os
 from dotenv import load_dotenv
+from more_itertools import chunked
 
 from models.user import User
 from models.history import AddHistory
+
+from services.generate_amplified_keywords import generate_amplified_keywords
+from services.get_articles import get_articles_by_keywords
 
 load_dotenv()
 
@@ -96,3 +100,17 @@ def get_history(user_id: str):
 
     history_data = history_doc.to_dict()
     return {"user_id": user_id, "history": history_data}
+
+@app.get("/v1/articles/get/{search_term}")
+def get_articles(search_term: str):
+    keywords_res = generate_amplified_keywords(search_term)
+    keywords_batch_size = len(keywords_res["original_keywords"])
+    amplified_keywords = keywords_res["amplified_keywords"]
+    
+    batched_keywords = list(chunked(amplified_keywords, keywords_batch_size))
+    
+    formatted_keywords = [str(keywords_group).replace("[", "").replace("]","").replace(",", "") for keywords_group in batched_keywords]
+
+    articles = get_articles_by_keywords(formatted_keywords)
+    
+    return { "articles": articles }
