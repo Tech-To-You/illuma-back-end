@@ -5,16 +5,23 @@ from firebase_admin import credentials, firestore
 import firebase_admin
 import json
 import os
+
 from models.papers import N_Paper
 from services.algorithm_raking import simple_rank
+
 from dotenv import load_dotenv
 from more_itertools import chunked
 
 from models.user import User
 from models.history import AddHistory
+from models.email import SendEmail
 
 from services.generate_amplified_keywords import generate_amplified_keywords
 from services.get_articles import get_articles_by_keywords
+from services.send_article_email import send_article_email
+
+from services.chat_bot import generate_response
+from models.message import Message
 
 load_dotenv()
 
@@ -31,6 +38,11 @@ db = firestore.client()
 
 app = FastAPI()
 
+@app.post("/v1/chat-bot")
+async def read_item(message: Message):
+    response = generate_response(message.prompt, message.history, message.is_first_message);  
+    return {"status": 200, "response": response}    
+    
 
 @app.post("/v1/user/create")
 def create_user(user: User):
@@ -53,7 +65,7 @@ def create_user(user: User):
             "preferences": user.preferences,
         }
     )
-
+  
     histories_collection = db.collection("histories")
     histories_collection.document(user_doc.id).set(
         {"user_id": user_doc.id, "history": []}
@@ -63,7 +75,7 @@ def create_user(user: User):
         "msg": f"Usuário '{usuario.nome}' criado com sucesso!",
         "user_id": user_doc.id,
     }
-
+    return {"msg": f"Usuário '{user.name}' criado com sucesso!", "user_id": user_doc.id} #esse usuario estava correto? 
 
 @app.post("/v1/history/add-term")
 def add_to_history(history: AddHistory):
@@ -94,7 +106,6 @@ def add_to_history(history: AddHistory):
     history_doc.set(history_data)
 
     return {"msg": "Histórico atualizado com sucesso!", "History": history_data}
-
 
 @app.get("/v1/user/get/{user_id}")
 def get_user(user_id: str):
@@ -148,6 +159,28 @@ def get_articles(search_term: str):
             ],
             abstract=n_paper.get("abstract", ""),
         )
-        papers.append(paper)
+        papers.append(paper)    
+    
+    return { "articles": articles }
 
-    return {"paper": papers}
+@app.post("/v1/email/send")
+def send_email(email_props: SendEmail):
+
+    keywords_res = generate_amplified_keywords("Naruto")
+    keywords_batch_size = len(keywords_res["original_keywords"])
+    amplified_keywords = keywords_res["amplified_keywords"]
+    
+    batched_keywords = list(chunked(amplified_keywords, keywords_batch_size))
+    
+    formatted_keywords = [str(keywords_group).replace("[", "").replace("]","").replace(",", "") for keywords_group in batched_keywords]
+
+
+    articles = get_articles_by_keywords(formatted_keywords)
+
+    email = email_props.email_receiver
+    
+        
+
+    email_sent_response = send_article_email(email, articles)
+
+    return email_sent_response
