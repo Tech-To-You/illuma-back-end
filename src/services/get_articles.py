@@ -16,6 +16,6 @@ def get_articles_by_keywords(keywords_groups):
 
     if response.status_code == 200:
       data = response.json()
-      articles.append(data)
+      articles += data["message"]["items"]
   return articles
       
